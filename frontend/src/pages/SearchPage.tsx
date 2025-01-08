@@ -9,12 +9,21 @@ interface Movie {
   Year: string;
   Poster: string;
   imdbID: string;
+  Type: string;
 }
+
+interface SearchResponse {
+  movies: Movie[];
+  totalResults: number;
+}
+
+const API_BASE_URL = "http://localhost:3000";
 
 const SearchPage: React.FC = () => {
   const [query, setQuery] = useState("");
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(false);
+  const [totalResults, setTotalResults] = useState(0);
   const dispatch = useDispatch();
 
   const handleSearch = async () => {
@@ -22,25 +31,53 @@ const SearchPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await axios.get(
-        `https://www.omdbapi.com/?apikey=${
-          import.meta.env.VITE_OMDB_API_KEY
-        }&s=${query}`
+      const response = await axios.get<SearchResponse>(
+        `${API_BASE_URL}/movies/search`,
+        {
+          params: { query },
+        }
       );
-      if (response.data.Search) {
-        setMovies(response.data.Search);
+
+      if (response.data.movies) {
+        setMovies(response.data.movies);
+        setTotalResults(response.data.totalResults);
       } else {
         setMovies([]);
+        setTotalResults(0);
       }
     } catch (error) {
       console.error("Error fetching movies:", error);
+      setMovies([]);
+      setTotalResults(0);
     } finally {
-      setLoading(false); // End loading
+      setLoading(false);
     }
   };
 
-  const handleAddToFavorites = (movie: Movie) => {
-    dispatch(addFavorite(movie));
+  const handleAddToFavorites = async (movie: Movie) => {
+    try {
+      const favoriteMovie = {
+        imdbId: movie.imdbID,
+        title: movie.Title,
+        year: movie.Year,
+        poster: movie.Poster,
+      };
+
+      await axios.post(`${API_BASE_URL}/movies/favorites`, favoriteMovie);
+      dispatch(addFavorite(movie));
+    } catch (error: any) {
+      if (error.response?.status === 409) {
+        alert("This movie is already in your favorites.");
+      } else {
+        console.error("Error adding to favorites:", error);
+      }
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSearch();
+    }
   };
 
   return (
@@ -55,6 +92,7 @@ const SearchPage: React.FC = () => {
             placeholder="Search for a movie..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyPress={handleKeyPress}
             className="border border-gray-300 rounded-lg p-3 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
@@ -65,6 +103,13 @@ const SearchPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {totalResults > 0 && (
+        <p className="text-center text-gray-600 mb-6">
+          Found {totalResults} results for "{query}"
+        </p>
+      )}
+
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <ClipLoader color="#3b82f6" size={60} />
