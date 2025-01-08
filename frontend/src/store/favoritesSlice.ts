@@ -1,3 +1,4 @@
+// favoritesSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface Movie {
@@ -19,29 +20,18 @@ const favoritesSlice = createSlice({
   name: "favorites",
   initialState,
   reducers: {
-    addFavorite: (state, action: PayloadAction<Movie>) => {
-      if (
-        !state.movies.some((movie) => movie.imdbID === action.payload.imdbID)
-      ) {
-        state.movies.push(action.payload);
-      }
+    addFavorite: (state, action: PayloadAction<Movie[]>) => {
+      console.log("Adding favorites to Redux:", action.payload);
+      state.movies = action.payload;
     },
     removeFavorite: (state, action: PayloadAction<string>) => {
       state.movies = state.movies.filter(
         (movie) => movie.imdbID !== action.payload
       );
     },
-    editFavorite: (state, action: PayloadAction<Movie>) => {
-      const index = state.movies.findIndex(
-        (movie) => movie.imdbID === action.payload.imdbID
-      );
-      if (index !== -1) {
-        state.movies[index] = action.payload;
-      }
-    },
   },
 });
 
-export const { addFavorite, removeFavorite, editFavorite } =
-  favoritesSlice.actions;
+export const { addFavorite, removeFavorite } = favoritesSlice.actions;
+
 export default favoritesSlice.reducer;

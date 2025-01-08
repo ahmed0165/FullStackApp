@@ -1,14 +1,41 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import axios from "axios";
 import { RootState } from "../store/store";
-import { removeFavorite } from "../store/favoritesSlice";
+import { addFavorite, removeFavorite } from "../store/favoritesSlice";
 
+const API_BASE_URL = "http://localhost:3000";
 const FavoritesPage: React.FC = () => {
   const favorites = useSelector((state: RootState) => state.favorites.movies);
   const dispatch = useDispatch();
 
-  const handleRemove = (imdbID: string) => {
-    dispatch(removeFavorite(imdbID));
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/movies/favorites`);
+        console.log("Fetched favorites response:", response);
+        if (response.data) {
+          dispatch(addFavorite(response.data)); // Ensure data is passed correctly
+        } else {
+          console.error("No data found");
+        }
+      } catch (error) {
+        console.error("Error fetching favorites:", error);
+      }
+    };
+
+    fetchFavorites();
+  }, [dispatch]);
+
+  console.log("Favorites from Redux state:", favorites); // Log favorites from Redux
+
+  const handleRemove = async (imdbID: string) => {
+    try {
+      await axios.delete(`${API_BASE_URL}/movies/favorites/${imdbID}`);
+      dispatch(removeFavorite(imdbID));
+    } catch (error) {
+      console.error("Error removing favorite:", error);
+    }
   };
 
   return (
